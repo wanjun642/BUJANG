@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat WA 2 Pengguna</title>
+  <title>Live Chat WA 2 Pengguna</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
@@ -15,50 +14,35 @@
       font-family: 'Segoe UI', sans-serif;
       background: #ece5dd;
     }
-    .login {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      height: 100%;
-    }
-    .login input {
-      padding: 10px; margin: 10px;
-      font-size: 16px; width: 250px;
-    }
-    .login button {
-      padding: 10px 20px;
-      background: #25d366; color: white;
-      border: none; border-radius: 5px;
-      font-size: 16px;
-    }
     .chat-container {
-      display: none;
       height: 100vh; display: flex; flex-direction: column;
       max-width: 600px; margin: auto; background: #fff;
     }
     .chat-header {
       background: #075e54;
       color: white; padding: 15px;
-      display: flex; justify-content: space-between;
-      align-items: center;
+      font-size: 18px; font-weight: bold;
     }
     .chat-messages {
       flex: 1; padding: 10px;
       overflow-y: auto; background: #ece5dd;
     }
     .chat-input {
-      display: flex; padding: 10px;
-      background: #f0f0f0;
+      display: flex; flex-wrap: wrap;
+      padding: 10px; background: #f0f0f0; gap: 5px;
     }
-    .chat-input input[type="text"] {
-      flex: 1; padding: 10px;
-      border: none; border-radius: 20px;
-      outline: none;
-    }
+    .chat-input input[type="text"],
     .chat-input input[type="file"] {
-      margin-left: 5px;
+      padding: 10px; border: none;
+      border-radius: 20px; outline: none;
+    }
+    .chat-input input[name="username"] {
+      flex: 1;
+    }
+    .chat-input input#messageInput {
+      flex: 2;
     }
     .chat-input button {
-      margin-left: 5px;
       background: #128c7e;
       border: none; color: white;
       border-radius: 50%; width: 40px;
@@ -67,15 +51,14 @@
     .bubble {
       padding: 10px; border-radius: 8px;
       margin: 5px 0; max-width: 75%;
-      position: relative; word-wrap: break-word;
+      word-wrap: break-word;
     }
     .self {
       background: #dcf8c6; margin-left: auto;
       text-align: right;
     }
     .other {
-      background: #fff;
-      margin-right: auto;
+      background: #fff; margin-right: auto;
     }
     .bubble img {
       max-width: 100%; border-radius: 6px;
@@ -89,19 +72,11 @@
 </head>
 <body>
 
-<div class="login" id="loginPage">
-  <h2>Masukkan Nama Anda</h2>
-  <input type="text" id="nameInput" placeholder="Contoh: Budi" />
-  <button onclick="startChat()">Masuk</button>
-</div>
-
-<div class="chat-container" id="chatPage">
-  <div class="chat-header">
-    <span id="userDisplay">Chat WA</span>
-    <button onclick="logout()" style="background:none; border:none; color:white;">🔁 Ganti Nama</button>
-  </div>
+<div class="chat-container">
+  <div class="chat-header">Live Chat</div>
   <div class="chat-messages" id="chatMessages"></div>
   <div class="chat-input">
+    <input type="text" id="usernameInput" name="username" placeholder="Nama Anda..." />
     <input type="text" id="messageInput" placeholder="Tulis pesan..." />
     <input type="file" id="imageInput" accept="image/*" />
     <button onclick="sendMessage()">➤</button>
@@ -109,6 +84,7 @@
 </div>
 
 <script>
+  // 🔁 Ganti dengan config dari Firebase Console
   const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -123,32 +99,12 @@
   const storage = firebase.storage();
   const chatRef = db.ref("chat");
 
-  let username = "";
-
-  function startChat() {
-    const name = document.getElementById("nameInput").value.trim();
-    if (!name) return alert("Nama tidak boleh kosong");
-    username = name;
-    document.getElementById("userDisplay").textContent = name;
-    document.getElementById("loginPage").style.display = "none";
-    document.getElementById("chatPage").style.display = "flex";
-    loadMessages();
-  }
-
-  function logout() {
-    if (confirm("Ganti nama dan keluar chat?")) {
-      username = "";
-      document.getElementById("chatMessages").innerHTML = "";
-      document.getElementById("chatPage").style.display = "none";
-      document.getElementById("loginPage").style.display = "flex";
-      document.getElementById("nameInput").value = "";
-    }
-  }
-
   function sendMessage() {
+    const username = document.getElementById("usernameInput").value.trim();
     const text = document.getElementById("messageInput").value.trim();
     const file = document.getElementById("imageInput").files[0];
 
+    if (!username) return alert("Isi nama anda dulu.");
     if (!text && !file) return;
 
     const send = (imageUrl = "") => {
@@ -172,22 +128,20 @@
     }
   }
 
-  function loadMessages() {
-    chatRef.off(); // clear listener first
-    chatRef.on("child_added", (snapshot) => {
-      const data = snapshot.val();
-      const msgBox = document.getElementById("chatMessages");
-      const div = document.createElement("div");
-      div.className = "bubble " + (data.name === username ? "self" : "other");
-      let html = `<strong>${data.name}</strong><br>`;
-      if (data.text) html += data.text;
-      if (data.imageUrl) html += `<br><img src="${data.imageUrl}" />`;
-      html += `<small>${new Date(data.timestamp).toLocaleTimeString()}</small>`;
-      div.innerHTML = html;
-      msgBox.appendChild(div);
-      msgBox.scrollTop = msgBox.scrollHeight;
-    });
-  }
+  chatRef.on("child_added", (snapshot) => {
+    const data = snapshot.val();
+    const msgBox = document.getElementById("chatMessages");
+    const div = document.createElement("div");
+    const inputName = document.getElementById("usernameInput").value.trim();
+    div.className = "bubble " + (data.name === inputName ? "self" : "other");
+    let html = `<strong>${data.name}</strong><br>`;
+    if (data.text) html += data.text;
+    if (data.imageUrl) html += `<br><img src="${data.imageUrl}" />`;
+    html += `<small>${new Date(data.timestamp).toLocaleTimeString()}</small>`;
+    div.innerHTML = html;
+    msgBox.appendChild(div);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  });
 </script>
 
 </body>
